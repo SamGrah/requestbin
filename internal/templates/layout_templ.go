@@ -8,6 +8,8 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import "os"
+
 func header(title string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -33,13 +35,28 @@ func header(title string) templ.Component {
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/layout.templ`, Line: 5, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/templates/layout.templ`, Line: 7, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</title><meta charset=\"utf-8\"><link rel=\"stylesheet\" href=\"//use.fontawesome.com/releases/v5.0.7/css/all.css\"><meta name=\"viewport\" content=\"width=device-width\"><link rel=\"stylesheet\" href=\"static/css/style.css\"><script src=\"/static/javascript/htmx.min.js\"></script></head>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</title><meta charset=\"utf-8\"><link rel=\"stylesheet\" href=\"//use.fontawesome.com/releases/v5.0.7/css/all.css\"><meta name=\"viewport\" content=\"width=device-width\"><script src=\"/static/javascript/htmx.min.js\"></script>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if os.Getenv("env") == "production" {
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<link rel=\"stylesheet\" href=\"static/css/style.css\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<link rel=\"stylesheet\" href=\"static/css/style.min.css\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</head>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -65,7 +82,7 @@ func nav() templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<nav class=\"fixed w-screen\" style=\"background-color: #21CEAB;\"><div class=\"max-w-10xl mx-auto\"><div class=\"relative flex items-center justify-between h-16 mx-8\"><div class=\"flex-1 flex items-center justify-center sm:items-stretch sm:justify-start\"><a class=\"flex-shrink-0 flex items-center hover:opacity-50\" href=\"/\"><img class=\"block h-12 w-auto\" src=\"/static/images/logo.png\" alt=\"httpBin\"> <span class=\"ml-1 text-white text-4xl font-large font-bold\"><i>httpBin</i></span></a></div><button type=\"button\" class=\"bg-gray-800 p-1 mr-4 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white\"><span class=\"sr-only\">View notifications</span><div class=\"span12\"><a href=\"https://github.com/SamGrah/requestbin.git\"><i class=\"fab fa-github fa-2x hover:opacity-80\" style=\"color: #21CEAB;\"></i></a></div></button></div></div></nav>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<nav class=\"fixed w-screen\" style=\"background-color: #21CEAB;\"><div class=\"max-w-10xl mx-auto\"><div class=\"relative flex items-center justify-between h-16 mx-8\"><div class=\"flex-1 flex items-center justify-center sm:items-stretch sm:justify-start\"><a class=\"flex-shrink-0 flex items-center hover:opacity-50\" hx-get=\"/intro\" hx-target=\"#page-content\" hx-swap=\"innerHTML\"><img class=\"block h-12 w-auto\" src=\"/static/images/logo.png\" alt=\"httpBin\"> <span class=\"ml-1 text-white text-4xl font-large font-bold\"><i>httpBin</i></span></a></div><button type=\"button\" class=\"bg-gray-800 p-1 mr-4 rounded-full text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white\"><span class=\"sr-only\">View notifications</span><div class=\"span12\"><a href=\"https://github.com/SamGrah/requestbin.git\"><i class=\"fab fa-github fa-2x hover:opacity-80\" style=\"color: #21CEAB;\"></i></a></div></button></div></div></nav>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
