@@ -1,13 +1,19 @@
 package templates
 
+import "os"
+
 templ header(title string) {
     <head>
       <title>{ title }</title>
       <meta charset="utf-8" />
       <link rel="stylesheet" href="//use.fontawesome.com/releases/v5.0.7/css/all.css">
       <meta name="viewport" content="width=device-width" />
-      <link rel="stylesheet" href="static/css/style.css" />
       <script src="/static/javascript/htmx.min.js"></script>
+      if os.Getenv("env") == "production" {
+        <link rel="stylesheet" href="static/css/style.css" />
+      } else {
+        <link rel="stylesheet" href="static/css/style.min.css" />
+      }
     </head>
 }
 
@@ -16,7 +22,12 @@ templ nav() {
   <div class="max-w-10xl mx-auto">
     <div class="relative flex items-center justify-between h-16 mx-8">
         <div class="flex-1 flex items-center justify-center sm:items-stretch sm:justify-start">
-          <a class="flex-shrink-0 flex items-center hover:opacity-50" href="/" >
+          <a 
+            class="flex-shrink-0 flex items-center hover:opacity-50" 
+            hx-get='/intro'
+            hx-target='#page-content'
+            hx-swap='innerHTML'
+          >
             <img class="block h-12 w-auto" src="/static/images/logo.png" alt="httpBin">
             <span class="ml-1 text-white text-4xl font-large font-bold">
                 <i>httpBin</i>
@@ -42,7 +53,7 @@ templ Layout(pageContent templ.Component) {
     @nav()
     <div class="h-full flex flex-col">
       <div class="mt-24 mx-8 flex justify-center" id="page-content">
-          @pageContent
+        @pageContent
       </div>
     </div>
   </body>

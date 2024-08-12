@@ -22,4 +22,4 @@ dev:
 build:
 	make tailwind-build
 	make templ-generate
-	go build -o ./bin/app .
+	go build -ldflags "-X main.environment=production" -o ./bin/app .
