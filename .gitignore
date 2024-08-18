@@ -26,3 +26,7 @@ app
 
 # tailwind
 tailwindcss
+static/css/style.css
+
+# sqlite
+database.db
