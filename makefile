@@ -14,9 +14,20 @@ templ-generate:
 templ-watch:
 	templ generate --watch 
 
+.PHONY: create-db
+db-init:
+ifeq ("$(wildcard database.db)","")
+	sqlite3 database.db < db-schema.sql
+else
+	@:
+endif
+	
 .PHONY: dev
 dev:
-	templ generate && go build -o tmp/app ./cmd/main.go && air -c .air.toml
+	make db-init
+	templ generate
+	go build -o tmp/app ./cmd/main.go
+	air -c .air.toml
 
 .PHONY: build
 build:

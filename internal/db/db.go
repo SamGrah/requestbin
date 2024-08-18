@@ -23,3 +23,5 @@ func (db *Db) Connect() error {
 	db.conn = conn
 	return nil
 }
+
+// func (db *Db) LogRequest(binId string, )
