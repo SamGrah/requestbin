@@ -48,3 +48,5 @@ func (c *Controllers) Intro(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 }
+
+func (c *Controllers) ViewBinContents(w http.ResponseWriter, r *http.Request) {}

@@ -11,6 +11,7 @@ type Handlers interface {
 	Index(w http.ResponseWriter, r *http.Request)
 	NewBin(w http.ResponseWriter, r *http.Request)
 	Intro(w http.ResponseWriter, r *http.Request)
+	ViewBinContents(w http.ResponseWriter, r *http.Request)
 }
 
 func Routes(h Handlers) http.Handler {
@@ -32,7 +33,7 @@ func Routes(h Handlers) http.Handler {
 		router.Get("/", h.Index)
 		router.Get("/intro", h.Intro)
 		router.Get("/new-bin", h.NewBin)
-		// router.HandleFunc("/bin/{binId}", h.BinMgmtHandler.LogRequest)
+		router.HandleFunc("/bin/{binId}", h.ViewBinContents)
 		// router.Get("/bin-contents/{binId}", h.BinMgmtHandler.FetchBinContents)
 	})
 
