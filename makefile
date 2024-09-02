@@ -21,6 +21,15 @@ ifeq ("$(wildcard database.db)","")
 else
 	@:
 endif
+
+.PHONY: db-reset
+db-reset:
+	rm database.db
+	make db-init
+
+.PHONY: db-capture-schema
+db-capture-schema:
+	sqlite3 database.db .schema > db-schema.sql
 	
 .PHONY: dev
 dev:

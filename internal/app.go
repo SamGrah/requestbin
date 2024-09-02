@@ -4,6 +4,7 @@ import (
 	"app/internal/controllers"
 	"app/internal/db"
 	"app/internal/router"
+	"log"
 )
 
 type Deps struct {
@@ -19,7 +20,10 @@ type App struct {
 }
 
 func NewApp() *App {
-	dataService := db.NewDb()
+	dataService, err := db.NewDb("sqlite3", "./database.db")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	controllers := controllers.NewControllers(&controllers.Deps{})
 	router := router.Routes(controllers)
@@ -27,7 +31,7 @@ func NewApp() *App {
 	newServer := NewServer(":3000", router)
 
 	return &App{
-		db:     &dataService,
+		db:     dataService,
 		server: newServer,
 	}
 }
