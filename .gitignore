@@ -13,16 +13,15 @@ mongo
 # macOS 
 .DS_Store
 
-# ???
-.env
-
 # httpBin executables
 /tmp
 app
 ./app
 
 # direnv env vars tool
-.envrc
+.envrc 
+# env vars
+.env
 
 # tailwind
 tailwindcss
