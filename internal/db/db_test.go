@@ -159,20 +159,22 @@ func Test_InsertRequest(t *testing.T) {
 		db := populatedTestDbSetup(t)
 		defer teardownTestDb(t, db)
 
-		currenTime := time.Now()
+		currentTime := time.Now()
 		err := db.InsertRequest(models.Request{
-			RecievedAt: currenTime,
-			Headers:    "headers",
-			Body:       "body",
-			Host:       "host",
-			Method:     "method",
+			RecievedAt: currentTime,
+			Headers:    "new-headers",
+			Body:       "new-body",
+			Host:       "new-host",
+			Method:     "new-method",
 			Bin:        "bin-id-1",
 		})
 		assert.NoError(t, err)
 
-		query := "SELECT * FROM requests WHERE bin = 'bin';"
+		query := "SELECT * FROM requests WHERE bin = 'bin-id-1';"
 		rows, err := db.conn.QueryContext(context.Background(), query)
 		assert.NoError(t, err)
+
+		var newRequest models.Request
 		for rows.Next() {
 			var request models.Request
 			err = rows.Scan(
@@ -185,13 +187,17 @@ func Test_InsertRequest(t *testing.T) {
 				&request.Bin,
 			)
 			assert.NoError(t, err)
-			assert.Equal(t, currenTime, request.RecievedAt)
-			assert.Equal(t, "headers", request.Headers)
-			assert.Equal(t, "body", request.Body)
-			assert.Equal(t, "host", request.Host)
-			assert.Equal(t, "method", request.Method)
-			assert.Equal(t, "bin", request.Bin)
+			if request.Method == "new-method" {
+				newRequest = request
+			}
 		}
+		assert.NotNil(t, newRequest)
+		assert.Equal(t, currentTime.UTC(), newRequest.RecievedAt.UTC())
+		assert.Equal(t, "new-headers", newRequest.Headers)
+		assert.Equal(t, "new-body", newRequest.Body)
+		assert.Equal(t, "new-host", newRequest.Host)
+		assert.Equal(t, "new-method", newRequest.Method)
+		assert.Equal(t, "bin-id-1", newRequest.Bin)
 	})
 
 	t.Run("error inserting request", func(t *testing.T) {

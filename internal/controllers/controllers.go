@@ -5,15 +5,28 @@ import (
 	"log"
 	"net/http"
 
+	"app/internal/models"
 	"app/internal/templates"
 )
 
-type Controllers struct{}
+type Services interface {
+	CreateNewBin() (string, error)
+	LogRequest(request models.Request) error
+	GetRequestsInBin(binId string) ([]models.Request, error)
+}
 
-type Deps struct{}
+type Controllers struct {
+	services Services
+}
+
+type Deps struct {
+	Services Services
+}
 
 func NewControllers(deps *Deps) *Controllers {
-	return &Controllers{}
+	return &Controllers{
+		services: deps.Services,
+	}
 }
 
 func (c *Controllers) Index(w http.ResponseWriter, r *http.Request) {
@@ -28,9 +41,16 @@ func (c *Controllers) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Controllers) NewBin(w http.ResponseWriter, r *http.Request) {
-	component := wrapComponentTemplate(templates.NewBin("12345"), r)
+	binId, err := c.services.CreateNewBin()
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	component := wrapComponentTemplate(templates.NewBin(binId), r)
 
-	err := component.Render(context.Background(), w)
+	err = component.Render(context.Background(), w)
 	if err != nil {
 		log.Println(err)
 	}

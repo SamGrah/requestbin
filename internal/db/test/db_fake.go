@@ -1,20 +1,13 @@
 package test
 
 import (
+	"app/internal/models"
 	"context"
 	"database/sql"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-// func (rs *sql.Rows) Close() error
-// func (rs *sql.Rows) ColumnTypes() ([]*sql.ColumnType, error)
-// func (rs *sql.Rows) Columns() ([]string, error)
-// func (rs *sql.Rows) Err() error
-// func (rs *sql.Rows) Next() bool
-// func (rs *sql.Rows) NextResultSet() bool
-// func (rs *sql.Rows) Scan(dest ...any) error
 
 type Rows struct {
 	CloseFake            func() error
@@ -122,4 +115,40 @@ func (dbConnFake *Conn) VerifyCallCounts(t *testing.T, expected *Conn) {
 	assert.Equal(t, expected.CountOfQueryContext, dbConnFake.CountOfQueryContext)
 	assert.Equal(t, expected.CountOfPing, dbConnFake.CountOfPing)
 	assert.Equal(t, expected.CountOfClose, dbConnFake.CountOfClose)
+}
+
+// type Db interface {
+// 	InsertBin(bin models.Bin) error
+// 	InsertRequest(request models.Request) error
+// 	GetBinContents(binId string) ([]models.Request, error)
+// }
+
+type Db struct {
+	InsertBinFake func(bin models.Bin) error
+	CountOfInsertBin int
+	InsertRequestFake func(request models.Request) error
+	CountOfInsertRequest int
+	GetBinContentsFake func(binId string) ([]models.Request, error)
+	CountOfGetBinContents int
+}
+
+func (db *Db) InsertBin(bin models.Bin) error {
+	db.CountOfInsertBin++
+	return db.InsertBinFake(bin)
+}
+
+func (db *Db) InsertRequest(request models.Request) error {
+	db.CountOfInsertRequest++
+	return db.InsertRequestFake(request)
+}
+
+func (db *Db) GetBinContents(binId string) ([]models.Request, error) {
+	db.CountOfGetBinContents++
+	return db.GetBinContentsFake(binId)
+}
+
+func (db *Db) VerifyCallCounts(t *testing.T, expected *Db) {
+	assert.Equal(t, expected.CountOfInsertBin, db.CountOfInsertBin)
+	assert.Equal(t, expected.CountOfInsertRequest, db.CountOfInsertRequest)
+	assert.Equal(t, expected.CountOfGetBinContents, db.CountOfGetBinContents)
 }
