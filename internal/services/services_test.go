@@ -4,22 +4,31 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	fake "app/internal/db/test"
 	"app/internal/models"
 )
 
+func generateRequest() models.Request {
+	headers := map[string][]string{"header": {"header"}}
+	req := models.Request{
+		RecievedAt: time.Now(),
+		Body:       "body",
+		Host:       "host",
+		Method:     "method",
+		Bin:        1,
+	}
+	_ = req.SetHeaders(headers)
+	return req
+}
+
 func Test_CreateNewBin(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		var generatedBinId string
+		generatedBinId := int64(10000)
 		db := fake.Db{
-			InsertBinFake: func(bin models.Bin) error {
-				generatedBinId = bin.BinId
-				_, err := uuid.Parse(generatedBinId)
-				assert.NoError(t, err)
-				return nil
+			CreateBinFake: func(bin models.Bin) (int64, error) {
+				return generatedBinId, nil
 			},
 		}
 
@@ -31,13 +40,13 @@ func Test_CreateNewBin(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, generatedBinId, binId)
 		db.VerifyCallCounts(t, &fake.Db{
-			CountOfInsertBin: 1,
+			CountOfCreateBin: 1,
 		})
 	})
 	t.Run("error inserting bin", func(t *testing.T) {
 		db := fake.Db{
-			InsertBinFake: func(bin models.Bin) error {
-				return assert.AnError
+			CreateBinFake: func(bin models.Bin) (int64, error) {
+				return 0, assert.AnError
 			},
 		}
 		services := New(&Deps{
@@ -47,19 +56,18 @@ func Test_CreateNewBin(t *testing.T) {
 		_, err := services.CreateNewBin()
 		assert.Error(t, err)
 		db.VerifyCallCounts(t, &fake.Db{
-			CountOfInsertBin: 1,
+			CountOfCreateBin: 1,
 		})
 	})
 }
 
 func Test_LogRequest(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		id, err := uuid.NewV7()
-		assert.NoError(t, err)
+		request := generateRequest()
 
 		db := fake.Db{
-			InsertRequestFake: func(request models.Request) error {
-				assert.Equal(t, id.String(), request.Bin)
+			InsertRequestFake: func(requestParams models.Request) error {
+				assert.Equal(t, request.Bin, requestParams.Bin)
 				return nil
 			},
 		}
@@ -68,16 +76,7 @@ func Test_LogRequest(t *testing.T) {
 			Db: &db,
 		})
 
-		request := models.Request{
-			Bin:        id.String(),
-			RecievedAt: time.Now(),
-			Headers:    "headers",
-			Body:       "body",
-			Host:       "host",
-			Method:     "method",
-		}
-
-		err = services.LogRequest(request)
+		err := services.LogRequest(request)
 		assert.NoError(t, err)
 
 		db.VerifyCallCounts(t, &fake.Db{
@@ -90,22 +89,13 @@ func Test_LogRequest(t *testing.T) {
 			Db: &db,
 		})
 
-		request := models.Request{
-			Bin:        "invalid-bin-id",
-			RecievedAt: time.Now(),
-			Headers:    "headers",
-			Body:       "body",
-			Host:       "host",
-			Method:     "method",
-		}
+		request := generateRequest()
+		request.Bin = 0
 
 		err := services.LogRequest(request)
 		assert.Error(t, err)
 	})
 	t.Run("error inserting request", func(t *testing.T) {
-		id, err := uuid.NewV7()
-		assert.NoError(t, err)
-
 		db := fake.Db{
 			InsertRequestFake: func(request models.Request) error {
 				return assert.AnError
@@ -115,16 +105,9 @@ func Test_LogRequest(t *testing.T) {
 			Db: &db,
 		})
 
-		request := models.Request{
-			Bin:        id.String(),
-			RecievedAt: time.Now(),
-			Headers:    "headers",
-			Body:       "body",
-			Host:       "host",
-			Method:     "method",
-		}
+		request := generateRequest()
 
-		err = services.LogRequest(request)
+		err := services.LogRequest(request)
 		assert.Error(t, err)
 		db.VerifyCallCounts(t, &fake.Db{
 			CountOfInsertRequest: 1,
@@ -134,22 +117,13 @@ func Test_LogRequest(t *testing.T) {
 
 func Test_GetRequestsInBin(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
-		id, err := uuid.NewV7()
-		assert.NoError(t, err)
+		id := int64(1)
 
 		db := fake.Db{
-			GetBinContentsFake: func(binId string) ([]models.Request, error) {
-				assert.Equal(t, id.String(), binId)
-				return []models.Request{
-					{
-						Bin:        id.String(),
-						RecievedAt: time.Now(),
-						Headers:    "headers",
-						Body:       "body",
-						Host:       "host",
-						Method:     "method",
-					},
-				}, nil
+			GetBinContentsFake: func(binId int64) ([]models.Request, error) {
+				assert.Equal(t, id, binId)
+				loggedRequest := generateRequest()
+				return []models.Request{loggedRequest}, nil
 			},
 		}
 
@@ -157,7 +131,7 @@ func Test_GetRequestsInBin(t *testing.T) {
 			Db: &db,
 		})
 
-		requests, err := services.GetRequestsInBin(id.String())
+		requests, err := services.GetRequestsInBin(id)
 		assert.NoError(t, err)
 		assert.Len(t, requests, 1)
 		db.VerifyCallCounts(t, &fake.Db{
@@ -170,17 +144,16 @@ func Test_GetRequestsInBin(t *testing.T) {
 			Db: &db,
 		})
 
-		requests, err := services.GetRequestsInBin("invalid-bin-id")
+		requests, err := services.GetRequestsInBin(0)
 		assert.Nil(t, requests)
 		assert.Error(t, err)
 	})
 	t.Run("error getting requests", func(t *testing.T) {
-		id, err := uuid.NewV7()
-		assert.NoError(t, err)
+		id := int64(1)
 
 		db := fake.Db{
-			GetBinContentsFake: func(binId string) ([]models.Request, error) {
-				assert.Equal(t, id.String(), binId)
+			GetBinContentsFake: func(binId int64) ([]models.Request, error) {
+				assert.Equal(t, id, binId)
 				return nil, assert.AnError
 			},
 		}
@@ -188,7 +161,7 @@ func Test_GetRequestsInBin(t *testing.T) {
 			Db: &db,
 		})
 
-		requests, err := services.GetRequestsInBin(id.String())
+		requests, err := services.GetRequestsInBin(id)
 		assert.Nil(t, requests)
 		assert.Error(t, err)
 	})

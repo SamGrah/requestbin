@@ -10,9 +10,9 @@ templ header(title string) {
       <meta name="viewport" content="width=device-width" />
       <script src="/static/javascript/htmx.min.js"></script>
       if os.Getenv("env") == "production" {
-        <link rel="stylesheet" href="static/css/style.css" />
+        <link rel="stylesheet" href="/static/css/style.css" />
       } else {
-        <link rel="stylesheet" href="static/css/style.min.css" />
+        <link rel="stylesheet" href="/static/css/style.min.css" />
       }
     </head>
 }

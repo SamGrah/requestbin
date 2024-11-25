@@ -2,14 +2,13 @@ package services
 
 import (
 	"app/internal/models"
-
-	"github.com/google/uuid"
+	"fmt"
 )
 
 type Db interface {
-	InsertBin(bin models.Bin) error
+	CreateBin(bin models.Bin) (int64, error)
 	InsertRequest(request models.Request) error
-	GetBinContents(binId string) ([]models.Request, error)
+	GetBinContents(binId int64) ([]models.Request, error)
 }
 
 type Services struct {
@@ -26,22 +25,13 @@ func New(deps *Deps) *Services {
 	}
 }
 
-func (s *Services) CreateNewBin() (string, error) {
-	binId, err := uuid.NewV7() // uses ms since epoch, so it's unique :arm:
+func (s *Services) CreateNewBin() (int64, error) {
+	binId, err := s.db.CreateBin(models.Bin{})
 	if err != nil {
-		return "", err
+		return 0, err
 	}
 
-	bin := models.Bin{
-		BinId: binId.String(),
-	}
-
-	err = s.db.InsertBin(bin)
-	if err != nil {
-		return "", err
-	}
-
-	return binId.String(), nil
+	return binId, nil
 }
 
 func (s *Services) LogRequest(request models.Request) error {
@@ -52,17 +42,16 @@ func (s *Services) LogRequest(request models.Request) error {
 	return s.db.InsertRequest(request)
 }
 
-func (s *Services) GetRequestsInBin(binId string) ([]models.Request, error) {
+func (s *Services) GetRequestsInBin(binId int64) ([]models.Request, error) {
 	if err := BinIdValidation(binId); err != nil {
 		return nil, err
 	}
 	return s.db.GetBinContents(binId)
 }
 
-func BinIdValidation(binId string) error {
-	_, err := uuid.Parse(binId)
-	if err != nil {
-		return err
+func BinIdValidation(binId int64) error {
+	if binId <= 0 {
+		return fmt.Errorf("invalid bin id: %d", binId)
 	}
 
 	return nil

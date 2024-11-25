@@ -1,0 +1,114 @@
+package templates
+
+import "app/internal/models"
+import "time"
+import "fmt"
+import "strings"
+
+type ViewBinParams struct {
+  BinId string 
+  Hostname string
+  Requests []models.Request
+}
+
+templ ViewBinContents(params ViewBinParams) {
+  if len(params.Requests) == 0 {
+    <div>
+      <div class="max-w-md py-4 px-8 bg-white shadow-lg rounded-lg my-20">
+        <div>
+          <h2 class="text-gray-800 text-3xl font-semibold">
+            Bin is Empty
+          </h2>
+          <p class="mt-4 text-gray-600">
+            No HTTP requests have been recieved by bin {params.BinId}. A request of any type (#[i GET], #[i DELETE], etc) can be added to this bin by making a request to the following address.
+          </p>
+          <div class="flex justify-center mt-4 mb-3">
+            <a class="text-xl font-medium text-blue-900" href="/bin/{binId}">
+              {params.Hostname}/bin/{params.BinId}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  } else {
+  <ul>
+    for _, request := range params.Requests{
+      @ViewRequest(formatData(request))
+    }
+  </ul>
+  }
+}
+
+templ ViewRequest(data FormattedData, err error) {
+    <li class="m-6 grid grid-cols-3 border-2 border-gray-300">
+      <div class="p-2 bg-gray-100" style="white-space:pre;">
+        <a href={ templ.SafeURL(fmt.Sprintf("https://%s", data.Request.Host)) }>https://{ data.Request.Host }</a>
+        <b>{data.Request.Method}</b> { data.Request.RequestUri }
+      </div>
+      <div class="p-2 bg-gray-100">{data.Headers["content-type"]}</div>
+      <div class="p-2 text-right bg-gray-100" style="white-space:pre;">
+        {data.TimeStr} ago from {data.Request.RemoteAddr}
+      </div>
+      // <div class="p-2" style="white-space:pre;">
+      //   <span class="font-bold text-gray-500">FORM/POST PARAMETERS</span>
+      //   <ul>
+      //     <li class="whitespace-normal break-all">#{key}: #{value}</li>
+      //   </ul>
+      // </div>
+      <div class="p-2 col-span-2" style="white-space:pre;">
+        <span class="font-bold text-gray-500">HEADERS</span>
+        for key, value := range data.Headers {
+          <ul>
+            <li class="whitespace-normal break-all">{key}: {value}</li>
+          </ul>
+        }
+      </div>
+      <div class="p-2 col-span-3" style="white-space:pre;">
+        <span class="font-bold text-gray-500">RAW BODY</span>
+        <div class="whitespace-normal break-all">
+          <pre>#{(data.Request.Body)}</pre>
+        </div>
+      </div>
+    </li>
+}
+
+type FormattedData struct {
+  TimeStr string
+  Request models.Request
+  Headers map[string]string
+}
+
+func formatData(request models.Request) (FormattedData, error) {
+  msDiff := time.Now().UnixNano() - request.RecievedAt.UnixNano()
+  secsDiff := msDiff / 1000000000
+  minsDiff := secsDiff / 60
+  hoursDiff := minsDiff / 60
+  daysDiff := hoursDiff / 24
+
+  timeStr := fmt.Sprintf("%d secs", secsDiff)
+  if minsDiff >= 1 {
+    timeStr = fmt.Sprintf("%d mins", minsDiff)
+  }
+  if hoursDiff >= 1 {
+    timeStr = fmt.Sprintf("%d hours", hoursDiff)
+  }
+  if daysDiff >= 1 {
+    timeStr = fmt.Sprintf("%d days", daysDiff)
+  }
+
+  headers, err := request.GetHeaders()
+  if err != nil {
+    return FormattedData{}, err
+  }
+
+  formattedHeaders := map[string]string{}
+  for key, values := range headers {
+    formattedHeaders[key] = strings.Join(values, "/n") 
+  }
+
+  return FormattedData{
+    TimeStr: timeStr,
+    Request: request,
+    Headers: formattedHeaders,
+  }, nil
+}

@@ -117,24 +117,18 @@ func (dbConnFake *Conn) VerifyCallCounts(t *testing.T, expected *Conn) {
 	assert.Equal(t, expected.CountOfClose, dbConnFake.CountOfClose)
 }
 
-// type Db interface {
-// 	InsertBin(bin models.Bin) error
-// 	InsertRequest(request models.Request) error
-// 	GetBinContents(binId string) ([]models.Request, error)
-// }
-
 type Db struct {
-	InsertBinFake func(bin models.Bin) error
-	CountOfInsertBin int
-	InsertRequestFake func(request models.Request) error
-	CountOfInsertRequest int
-	GetBinContentsFake func(binId string) ([]models.Request, error)
+	CreateBinFake         func(bin models.Bin) (int64, error)
+	CountOfCreateBin      int
+	InsertRequestFake     func(request models.Request) error
+	CountOfInsertRequest  int
+	GetBinContentsFake    func(binId int64) ([]models.Request, error)
 	CountOfGetBinContents int
 }
 
-func (db *Db) InsertBin(bin models.Bin) error {
-	db.CountOfInsertBin++
-	return db.InsertBinFake(bin)
+func (db *Db) CreateBin(bin models.Bin) (int64, error) {
+	db.CountOfCreateBin++
+	return db.CreateBinFake(bin)
 }
 
 func (db *Db) InsertRequest(request models.Request) error {
@@ -142,13 +136,13 @@ func (db *Db) InsertRequest(request models.Request) error {
 	return db.InsertRequestFake(request)
 }
 
-func (db *Db) GetBinContents(binId string) ([]models.Request, error) {
+func (db *Db) GetBinContents(binId int64) ([]models.Request, error) {
 	db.CountOfGetBinContents++
 	return db.GetBinContentsFake(binId)
 }
 
 func (db *Db) VerifyCallCounts(t *testing.T, expected *Db) {
-	assert.Equal(t, expected.CountOfInsertBin, db.CountOfInsertBin)
+	assert.Equal(t, expected.CountOfCreateBin, db.CountOfCreateBin)
 	assert.Equal(t, expected.CountOfInsertRequest, db.CountOfInsertRequest)
 	assert.Equal(t, expected.CountOfGetBinContents, db.CountOfGetBinContents)
 }
