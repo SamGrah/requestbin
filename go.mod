@@ -10,7 +10,7 @@ require (
 require github.com/a-h/templ v0.2.747
 
 require (
-	github.com/flashlabs/rootpath v1.1.5
+	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/stretchr/testify v1.9.0
 )

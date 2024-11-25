@@ -4,6 +4,7 @@ import (
 	"app/internal/models"
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -47,23 +48,29 @@ func (db *Db) Connect() error {
 	return nil
 }
 
-func (db *Db) InsertBin(bin models.Bin) error {
-	query := "INSERT INTO bins (bin_id, created_at, owner) VALUES (?, ?, ?)"
-	_, err := db.conn.ExecContext(
+func (db *Db) CreateBin(bin models.Bin) (int64, error) {
+	query := "INSERT INTO bins (created_at, owner) VALUES (?, ?)"
+	res, err := db.conn.ExecContext(
 		context.Background(),
 		query,
-		bin.BinId,
 		models.TimeToString(time.Now()),
 		bin.Owner)
 	if err != nil {
-		return err
+		return 0, err
+	}
+	id, err := sql.Result.LastInsertId(res)
+	if err != nil {
+		return 0, err
+	}
+	if id == 0 {
+		return 0, errors.New("no id returned")
 	}
 
-	return nil
+	return id, nil
 }
 
 func (db *Db) InsertRequest(request models.Request) error {
-	query := "INSERT INTO requests (timestamp, headers, body, host, method, bin) VALUES (?, ?, ?, ?, ?, ?)"
+	query := "INSERT INTO requests (timestamp, headers, body, host, remoteAddr, requestUri, method, bin) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 	_, err := db.conn.ExecContext(
 		context.Background(),
 		query,
@@ -71,6 +78,8 @@ func (db *Db) InsertRequest(request models.Request) error {
 		request.Headers,
 		request.Body,
 		request.Host,
+		request.RemoteAddr,
+		request.RequestUri,
 		request.Method,
 		request.Bin,
 	)
@@ -81,7 +90,7 @@ func (db *Db) InsertRequest(request models.Request) error {
 	return nil
 }
 
-func (db *Db) GetBinContents(binId string) ([]models.Request, error) {
+func (db *Db) GetBinContents(binId int64) ([]models.Request, error) {
 	query := "SELECT * FROM requests WHERE bin = ?"
 	rows, err := db.conn.QueryContext(context.Background(), query, binId)
 	if err != nil {
@@ -98,6 +107,8 @@ func (db *Db) GetBinContents(binId string) ([]models.Request, error) {
 			&request.Headers,
 			&request.Body,
 			&request.Host,
+			&request.RemoteAddr,
+			&request.RequestUri,
 			&request.Method,
 			&request.Bin,
 		)

@@ -4,6 +4,7 @@ import (
 	"app/internal/controllers"
 	"app/internal/db"
 	"app/internal/router"
+	"app/internal/services"
 	"log"
 )
 
@@ -25,7 +26,13 @@ func NewApp() *App {
 		log.Fatal(err)
 	}
 
-	controllers := controllers.NewControllers(&controllers.Deps{})
+	srvs := services.New(&services.Deps{
+		Db: dataService,
+	})
+
+	controllers := controllers.NewControllers(&controllers.Deps{
+		Services: srvs,
+	})
 	router := router.Routes(controllers)
 
 	newServer := NewServer(":3000", router)

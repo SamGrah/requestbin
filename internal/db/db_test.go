@@ -83,7 +83,7 @@ func Test_Connect(t *testing.T) {
 		db := testDbSetup(t)
 		defer teardownTestDb(t, db)
 
-		query := "INSERT INTO bins (bin_id, created_at, owner) VALUES ('bin-id-1', '2023-01-01 00:00:00', 'owner-1');"
+		query := "INSERT INTO bins (created_at, owner) VALUES ('2023-01-01 00:00:00', 'owner-1');"
 		_, err := db.conn.ExecContext(context.Background(), query)
 		assert.NoError(t, err)
 
@@ -115,26 +115,30 @@ func Test_Connect(t *testing.T) {
 	})
 }
 
-func Test_InsertBin(t *testing.T) {
+func Test_CreateBin(t *testing.T) {
 	t.Run("happy path", func(t *testing.T) {
 		db := testDbSetup(t)
 		defer teardownTestDb(t, db)
 
-		err := db.InsertBin(models.Bin{
-			BinId: "bin-id",
-			Owner: "owner",
+		currentTime := time.Now()
+		owner := "owner"
+
+		id, err := db.CreateBin(models.Bin{
+			CreatedAt: time.Now(),
+			Owner:     "owner",
 		})
 		assert.NoError(t, err)
+		assert.Equal(t, int64(1), id)
 
-		query := "SELECT * FROM bins WHERE bin_id = 'bin-id';"
+		query := "SELECT * FROM bins WHERE bin_id = 1;"
 		rows, err := db.conn.QueryContext(context.Background(), query)
 		for rows.Next() {
 			var bin models.Bin
 			err = rows.Scan(&bin.BinId, &bin.CreatedAt, &bin.Owner)
 			assert.NoError(t, err)
-			assert.Equal(t, "bin-id", bin.BinId)
-			assert.NotEqual(t, "", bin.CreatedAt)
-			assert.Equal(t, "owner", bin.Owner)
+			assert.Equal(t, int64(1), bin.BinId)
+			assert.NotEqual(t, currentTime, bin.CreatedAt)
+			assert.Equal(t, owner, bin.Owner)
 		}
 		assert.NoError(t, err)
 	})
@@ -146,8 +150,7 @@ func Test_InsertBin(t *testing.T) {
 		err := db.conn.Close()
 		assert.NoError(t, err)
 
-		err = db.InsertBin(models.Bin{
-			BinId: "bin-id",
+		_, err = db.CreateBin(models.Bin{
 			Owner: "owner",
 		})
 		assert.Error(t, err)
@@ -159,20 +162,26 @@ func Test_InsertRequest(t *testing.T) {
 		db := populatedTestDbSetup(t)
 		defer teardownTestDb(t, db)
 
-		currenTime := time.Now()
-		err := db.InsertRequest(models.Request{
-			RecievedAt: currenTime,
-			Headers:    "headers",
-			Body:       "body",
-			Host:       "host",
-			Method:     "method",
-			Bin:        "bin-id-1",
-		})
+		currentTime := time.Now()
+		req := models.Request{
+			RecievedAt: currentTime,
+			Body:       "new-body",
+			Host:       "new-host",
+			RemoteAddr: "new-remoteAddr",
+			RequestUri: "new-requestUri",
+			Method:     "new-method",
+			Bin:        1,
+		}
+		_ = req.SetHeaders(map[string][]string{"headers": {"header"}})
+		err := db.InsertRequest(req)
+
 		assert.NoError(t, err)
 
-		query := "SELECT * FROM requests WHERE bin = 'bin';"
-		rows, err := db.conn.QueryContext(context.Background(), query)
+		query := "SELECT * FROM requests WHERE bin = ?"
+		rows, err := db.conn.QueryContext(context.Background(), query, req.Bin)
 		assert.NoError(t, err)
+
+		var newRequest models.Request
 		for rows.Next() {
 			var request models.Request
 			err = rows.Scan(
@@ -181,17 +190,25 @@ func Test_InsertRequest(t *testing.T) {
 				&request.Headers,
 				&request.Body,
 				&request.Host,
+				&request.RemoteAddr,
+				&request.RequestUri,
 				&request.Method,
 				&request.Bin,
 			)
 			assert.NoError(t, err)
-			assert.Equal(t, currenTime, request.RecievedAt)
-			assert.Equal(t, "headers", request.Headers)
-			assert.Equal(t, "body", request.Body)
-			assert.Equal(t, "host", request.Host)
-			assert.Equal(t, "method", request.Method)
-			assert.Equal(t, "bin", request.Bin)
+			if request.Method == "new-method" {
+				newRequest = request
+			}
 		}
+		assert.NotNil(t, newRequest)
+		assert.Equal(t, currentTime.UTC(), newRequest.RecievedAt.UTC())
+		assert.Equal(t, req.Headers, newRequest.Headers)
+		assert.Equal(t, req.Body, newRequest.Body)
+		assert.Equal(t, req.Host, newRequest.Host)
+		assert.Equal(t, req.Method, newRequest.Method)
+		assert.Equal(t, req.RemoteAddr, newRequest.RemoteAddr)
+		assert.Equal(t, req.RequestUri, newRequest.RequestUri)
+		assert.Equal(t, req.Bin, newRequest.Bin)
 	})
 
 	t.Run("error inserting request", func(t *testing.T) {
@@ -199,14 +216,18 @@ func Test_InsertRequest(t *testing.T) {
 		defer teardownTestDb(t, db)
 
 		currenTime := time.Now()
-		err := db.InsertRequest(models.Request{
+		req := models.Request{
 			RecievedAt: currenTime,
-			Headers:    "headers",
 			Body:       "body",
 			Host:       "host",
+			RemoteAddr: "remoteAddr",
+			RequestUri: "requestUri",
 			Method:     "method",
-			Bin:        "non-existent-bin-id-violated-foreign-key-constraint",
-		})
+			Bin:        9999, // bin id that does not exist
+		}
+		_ = req.SetHeaders(map[string][]string{"headers": {"header"}})
+
+		err := db.InsertRequest(req)
 		assert.Error(t, err)
 	})
 }
@@ -216,24 +237,28 @@ func Test_GetBinContents(t *testing.T) {
 		db := populatedTestDbSetup(t)
 		defer teardownTestDb(t, db)
 
-		requests, err := db.GetBinContents("bin-id-1")
+		binId := int64(1)
+		requests, err := db.GetBinContents(binId)
 		assert.NoError(t, err)
 		assert.Len(t, requests, 2)
 
 		for _, request := range requests {
-			assert.Equal(t, "bin-id-1", request.Bin)
+			assert.Equal(t, binId, request.Bin)
 		}
 	})
 
-	t.Run("happy path - no requests present in db", func(t *testing.T) {
+	t.Run("happy path - new bin", func(t *testing.T) {
 		db := populatedTestDbSetup(t)
 		defer teardownTestDb(t, db)
 
-		query := "INSERT INTO bins (bin_id, created_at, owner) VALUES ('new-bin', '2023-01-01 00:00:00', 'owner-1');"
-		_, err := db.conn.ExecContext(context.Background(), query)
+		query := "INSERT INTO bins (created_at, owner) VALUES ('2023-01-01 00:00:00', 'owner-1');"
+		res, err := db.conn.ExecContext(context.Background(), query)
 		assert.NoError(t, err)
 
-		requests, err := db.GetBinContents("new-bin")
+		id, err := sql.Result.LastInsertId(res)
+		assert.NoError(t, err)
+
+		requests, err := db.GetBinContents(id)
 		assert.Nil(t, err)
 		assert.Len(t, requests, 0)
 	})
@@ -245,7 +270,7 @@ func Test_GetBinContents(t *testing.T) {
 		err := db.conn.Close()
 		assert.NoError(t, err)
 
-		requests, err := db.GetBinContents("bin-id-1")
+		requests, err := db.GetBinContents(1)
 		assert.Nil(t, requests)
 		assert.Error(t, err)
 	})

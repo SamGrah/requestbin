@@ -1,15 +1,17 @@
 CREATE TABLE [bins] (
-	bin_id TEXT NOT NULL PRIMARY KEY,
+	bin_id INTEGER PRIMARY KEY,
 	created_at DATETIME NOT NULL,
 	owner TEXT
 );
 CREATE TABLE [requests] (
-	id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+	id INTEGER PRIMARY KEY,
 	timestamp DATETIME NOT NULL,
 	headers TEXT NOT NULL,
 	body TEXT NOT NULL,
 	host TEXT NOT NULL,
+  remoteAddr TEXT NOT NULL,
+  requestUri TEXT NOT NULL,
 	"method" TEXT NOT NULL,
-	bin text NOT NULL,
+	bin INTEGER NOT NULL,
 	FOREIGN KEY (bin) REFERENCES bins(bin_id)	
 );

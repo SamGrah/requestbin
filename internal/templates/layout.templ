@@ -10,9 +10,9 @@ templ header(title string) {
       <meta name="viewport" content="width=device-width" />
       <script src="/static/javascript/htmx.min.js"></script>
       if os.Getenv("env") == "production" {
-        <link rel="stylesheet" href="static/css/style.css" />
+        <link rel="stylesheet" href="/static/css/style.css" />
       } else {
-        <link rel="stylesheet" href="static/css/style.min.css" />
+        <link rel="stylesheet" href="/static/css/style.min.css" />
       }
     </head>
 }
@@ -24,7 +24,7 @@ templ nav() {
         <div class="flex-1 flex items-center justify-center sm:items-stretch sm:justify-start">
           <a 
             class="flex-shrink-0 flex items-center hover:opacity-50" 
-            hx-get='/intro'
+            hx-get='/'
             hx-target='#page-content'
             hx-swap='innerHTML'
           >

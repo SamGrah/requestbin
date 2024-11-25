@@ -36,7 +36,7 @@ dev:
 	make db-init
 	templ generate
 	go build -o tmp/app ./cmd/main.go
-	air -c .air.toml
+	air -d -c .air.toml
 
 .PHONY: build
 build:
